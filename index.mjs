@@ -3,16 +3,14 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ESM-friendly __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// IMPORTANT: import the default export from openai v4
 import OpenAI from 'openai';
 
 // 1) Instantiate the new openai client
 const openai = new OpenAI({
-    apiKey: "sk-proj-key-here-00000000000000000000"
+    apiKey: process.env.OPENAI_API_KEY
 });
 
 // Destructure from fs / path
@@ -56,27 +54,57 @@ console.log('[i18n-codegen]: Types updated in types.ts');
 
 // 4) Translate missing keys
 async function translateText(targetLang, text) {
-    try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o', // or 'gpt-3.5-turbo'
-            messages: [
-                {
-                    role: 'user',
-                    content: `Translate the following into ${targetLang}: ${text} (It is a kitchen fitters app that is in multiple languages so you are translating the app's iterface. Provide absolutely no explanations and provide tback ONLY the translation! It will be added automatically to the app so anyything else than translation will break the app. If possible try approx. same length of the text in translation as in English to maintain the UI design.)`
-                }
-            ],
-            temperature: 0.3
-        });
+    let attempts = 0;
+    const maxAttempts = 2;
 
-        if (response.choices && response.choices.length > 0) {
-            return response.choices[0].message.content.trim();
+    while (attempts < maxAttempts) {
+        attempts++;
+
+        try {
+            const response = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    {
+                        role: 'user',
+                        content: `Translate the following into ${targetLang}: ${text} (It is a kitchen fitters app that is in multiple languages so you are translating the app's iterface. Provide absolutely no explanations and provide tback ONLY the translation! It will be added automatically to the app so anyything else than translation will break the app. If possible try approx. same length of the text in translation as in English to maintain the UI design.)`
+                    }
+                ],
+                temperature: 0.3
+            });
+
+            const message = response.choices?.[0]?.message?.content?.trim() || '';
+            if (!message) {
+                return text; // fallback
+            }
+
+            // Detect "I'm sorry"
+            if (message.toLowerCase().startsWith("i'm sorry")) {
+                console.warn(`[i18n-codegen] Got apology from OpenAI. Attempt: ${attempts}`);
+
+                // If second attempt also fails, skip
+                if (attempts === maxAttempts) {
+                    console.warn(`[i18n-codegen] Skipped translation for: ${text}`);
+                    return text;
+                } else {
+                    // Retry once
+                    continue;
+                }
+            }
+
+            // Otherwise, we have a good translation
+            return message;
+        } catch (err) {
+            console.error(`Error translating "${text}" to ${targetLang}`, err);
+
+            // If it’s a network or other error, we can decide to keep retrying or break
+            break;
         }
-        return text; // fallback
-    } catch (err) {
-        console.error(`Error translating "${text}" to ${targetLang}`, err);
-        return text;
     }
+
+    // If we exit the loop, return the original text
+    return text;
 }
+
 
 (async () => {
     // For each language except 'en', create / update the JSON

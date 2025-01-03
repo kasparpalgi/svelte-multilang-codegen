@@ -15,18 +15,13 @@
       3. For each key in the EN JSON, if it doesn’t exist in the language JSON, call OpenAI to create a translation.
    3. Finally, write or update the language JSON file with the translations.
 
-## TODO
-
-* On bigger projects expensive to ship for AI all the translations every time
-* Check what others think
-
 ## Installation
 
 1. Install
    
 ```bash
 npm i
-npm i -D npm-run-all
+npm install -D chokidar-cli npm-run-all
 ```
 
 2. Create `/codegen/.env` file with the following content:
@@ -95,16 +90,31 @@ export function loadTranslations(sections: string[]): Promise<Record<string, str
 ```svelte
 <script lang="ts>
    import { loadTranslations } from '$lib/runes/language.svelte';
+   import type { Translations } from '$lib/types';
 
    let requiredSections = ['common', 'calendar']; // change this
-	let trans: Translations | {} = $state({});
+	let trans = $state<Translations>({} as Translations);
 
 	$effect(() => {
 		loadTranslations(requiredSections).then((data) => {
-			trans = data;
+			trans = data as Translations;
 		});
 	});
 </script>
 
 Calendar in another language: {trans.calendar}
+```
+
+7. In your Svelte's main `package.json` add:
+
+```json
+{
+  "scripts": {
+    "dev:vite": "vite --host",
+		"dev:watch-i18n": "chokidar \"./src/lib/i18n/en/*.json\" -c \"npm run codegen:i18n\"",
+		"codegen:i18n": "node ./codegen/index.mjs",
+		"dev": "npm-run-all --parallel dev:vite dev:watch-i18n",
+      // rest of your scripts
+  }
+}
 ```
