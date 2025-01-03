@@ -15,6 +15,11 @@
       3. For each key in the EN JSON, if it doesn’t exist in the language JSON, call OpenAI to create a translation.
    3. Finally, write or update the language JSON file with the translations.
 
+## TODO
+
+* On bigger projects expensive to ship for AI all the translations every time
+* Check what others think
+
 ## Installation
 
 1. Install
@@ -57,3 +62,49 @@ Notes:
 * You can also run `npm run codegen:i18n` manually.
 
 1. See the lines 59-66 and adjust your promop, [temperature](https://platform.openai.com/docs/api-reference/audio/createTranscription#audio-createtranscription-temperature), etc.
+
+5. Add to eg. `$lib/runes/language.svnpm create svelte@latese.ts`:
+
+```ts
+export let locale = $state('en');
+
+// Loads a single translation file
+export function loadSection(section: string): Promise<Record<string, string>> {
+	// Dynamic import –> returns promise
+	return (
+		import(`../i18n/${locale}/${section}.json`)
+			// Default export is `module.default`
+			.then((module) => module.default)
+	);
+}
+
+// Load multiple sections at once and merge them
+export function loadTranslations(sections: string[]): Promise<Record<string, string>> {
+	return Promise.all(sections.map((section) => loadSection(section))).then((results) => {
+		let merged = {};
+		for (const r of results) {
+			merged = { ...merged, ...r };
+		}
+		return merged;
+	});
+}
+```
+
+6. Usage in your SvelteKit components:
+
+```svelte
+<script lang="ts>
+   import { loadTranslations } from '$lib/runes/language.svelte';
+
+   let requiredSections = ['common', 'calendar']; // change this
+	let trans: Translations | {} = $state({});
+
+	$effect(() => {
+		loadTranslations(requiredSections).then((data) => {
+			trans = data;
+		});
+	});
+</script>
+
+Calendar in another language: {trans.calendar}
+```
