@@ -1,0 +1,35 @@
+{
+  "type": "module",
+  "name": "svelte-multilang-codegen",
+  "version": "1.0.0",
+  "description": "Whenever you add a new item in English it generates other languages and types. Also translates with OpenAI API.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kasparpalgi"
+  },
+  "keywords": [
+    "sveltekit",
+    "svelte",
+    "multilang",
+    "i18n",
+    "chatGTP",
+    "openAI",
+    "OpenAI",
+    "API",
+    "codegen"
+  ],
+  "author": "Kaspar L. Palgi",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0",
+    "npm-run-all": "^4.1.5",
+    "openai": "^4.77.0"
+  }
+}
