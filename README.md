@@ -93,7 +93,7 @@ export function loadTranslations(sections: string[]): Promise<Record<string, str
    import type { Translations } from '$lib/types';
 
    let requiredSections = ['common', 'calendar']; // change this
-	let trans = $state<Translations>({} as Translations);
+	let trans: Translations = $state({}) as Translations;
 
 	$effect(() => {
 		loadTranslations(requiredSections).then((data) => {
